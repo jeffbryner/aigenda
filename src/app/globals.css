@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  
+  --ai-tag-border: #4b5563; /* Gray-600 */
+  --hard-tag-amber: #f59e0b; /* Amber-500 */
+  --hard-tag-green: #10b981; /* Emerald-500 */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-mono: var(--font-geist-mono);
+  
+  --color-ai-border: var(--ai-tag-border);
+  --color-hard-amber: var(--hard-tag-amber);
+  --color-hard-green: var(--hard-tag-green);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@layer components {
+  .tag-soft {
+    @apply border border-dashed border-ai-border px-1.5 py-0.5 text-xs;
+  }
+  
+  .tag-hard-amber {
+    @apply border border-solid border-hard-amber text-hard-amber px-1.5 py-0.5 text-xs;
+  }
+  
+  .tag-hard-green {
+    @apply border border-solid border-hard-green text-hard-green px-1.5 py-0.5 text-xs;
+  }
+}
