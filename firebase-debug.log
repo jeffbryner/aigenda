@@ -1,0 +1,41 @@
+[debug] [2026-05-31T21:42:00.360Z] ----------------------------------------------------------------------
+[debug] [2026-05-31T21:42:00.362Z] Command:       /opt/homebrew/Cellar/node/26.0.0/bin/node /Users/jeffbryner/development/aigenda/node_modules/.bin/firebase init functions --non-interactive --project aigenda-project-id-placeholder
+[debug] [2026-05-31T21:42:00.362Z] CLI Version:   15.19.0
+[debug] [2026-05-31T21:42:00.362Z] Platform:      darwin
+[debug] [2026-05-31T21:42:00.362Z] Node Version:  v26.0.0
+[debug] [2026-05-31T21:42:00.362Z] Time:          Sun May 31 2026 14:42:00 GMT-0700 (Pacific Daylight Time)
+[debug] [2026-05-31T21:42:00.362Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-31T21:42:00.363Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /Users/jeffbryner/development/aigenda
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-05-31T21:42:00.994Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-31T21:42:01.208Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-05-31T21:42:01.208Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-05-31T21:42:01.220Z] Running auto auth
+[debug] [2026-05-31T21:42:01.220Z] No OAuth tokens found
+[debug] [2026-05-31T21:42:01.220Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/aigenda-project-id-placeholder [none]
+[debug] [2026-05-31T21:42:01.626Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/aigenda-project-id-placeholder 403
+[debug] [2026-05-31T21:42:01.626Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/aigenda-project-id-placeholder {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2026-05-31T21:42:01.627Z] Request to https://firebase.googleapis.com/v1beta1/projects/aigenda-project-id-placeholder had HTTP Error: 403, The caller does not have permission
+[debug] [2026-05-31T21:42:01.628Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/aigenda-project-id-placeholder had HTTP Error: 403, The caller does not have permission
+    at responseToError (/Users/jeffbryner/development/aigenda/node_modules/firebase-tools/lib/responseToError.js:53:12)
+    at RetryOperation._fn (/Users/jeffbryner/development/aigenda/node_modules/firebase-tools/lib/apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to get Firebase project aigenda-project-id-placeholder. Please make sure the project exists and your account has permission to access it.
