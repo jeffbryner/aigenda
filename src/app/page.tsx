@@ -2,11 +2,20 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useKeyboard } from '@/hooks/use-keyboard';
-import { functions } from '@/lib/firebase';
+import { auth, functions } from '@/lib/firebase';
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  onAuthStateChanged, 
+  User,
+  signOut 
+} from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
+import { agendaService } from '@/lib/agenda-service';
 import { AgendaItem } from '@/types/agenda';
 
 export default function Home() {
+  const [user, setUser] = useState<User | null>(null);
   const [activeArea, setActiveArea] = useState<'input' | 'grid'>('input');
   const [selectedCol, setSelectedCol] = useState(0);
   const [inputValue, setInputValue] = useState('');
@@ -14,10 +23,30 @@ export default function Home() {
   const [items, setItems] = useState<AgendaItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Auth Listener
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+  }, []);
+
+  // Firestore Sync Listener
+  useEffect(() => {
+    if (!user) {
+      setItems([]);
+      return;
+    }
+    return agendaService.subscribeToItems(user.uid, (data) => {
+      setItems(data.filter(i => i.status === 'active'));
+    });
+  }, [user]);
+
   // Focus input on load
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (user && activeArea === 'input') {
+      inputRef.current?.focus();
+    }
+  }, [user, activeArea]);
 
   useKeyboard({
     '/': (e) => {
@@ -60,25 +89,34 @@ export default function Home() {
     }
   });
 
+  const handleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !user) return;
     
     const raw = inputValue;
+    const tempId = Math.random().toString(36).substr(2, 9);
     setInputValue('');
 
-    // Optimistic Update
-    const newItem: AgendaItem = {
-      id: Math.random().toString(36).substr(2, 9),
+    // Write to Firestore (Real-time listener handles the UI update)
+    const newItem: Partial<AgendaItem> & { id: string } = {
+      id: tempId,
       rawText: raw,
       status: 'active',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
     };
     
-    setItems(prev => [newItem, ...prev]);
-
     try {
+      await agendaService.saveItem(user.uid, newItem);
+
+      // Invoke AI Extraction
       const extractAgendaItem = httpsCallable(functions, 'extractAgendaItem');
       const result = await extractAgendaItem({ 
         rawText: raw,
@@ -87,21 +125,32 @@ export default function Home() {
       
       const aiData = result.data as any;
       
-      // Update item with AI data
-      setItems(prev => prev.map(item => 
-        item.id === newItem.id 
-          ? { ...item, aiParsed: {
-              actionItems: aiData.action_items,
-              people: aiData.people,
-              tags: aiData.tags,
-              dates: aiData.dates
-            } } 
-          : item
-      ));
+      // Update Firestore with AI results
+      await agendaService.updateAiResults(user.uid, tempId, {
+        actionItems: aiData.action_items,
+        people: aiData.people,
+        tags: aiData.tags,
+        dates: aiData.dates
+      });
     } catch (error) {
-      console.error('AI Extraction failed:', error);
+      console.error('Operation failed:', error);
     }
   };
+
+  if (!user) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black text-white font-mono">
+        <h1 className="text-2xl mb-8 tracking-tighter uppercase font-bold border-b-4 border-white pb-2">Project Agenda</h1>
+        <button 
+          onClick={handleLogin}
+          className="px-8 py-3 bg-white text-black font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+        >
+          Login with Google
+        </button>
+        <p className="mt-8 text-[10px] text-zinc-500 uppercase tracking-widest">Zero Friction Data Dump + AI Structuring</p>
+      </div>
+    );
+  }
 
   return (
     <main className="flex-1 flex flex-col p-4 md:p-8 space-y-8 relative overflow-hidden">
