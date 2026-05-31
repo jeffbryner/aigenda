@@ -15,4 +15,14 @@ export interface AgendaItem {
       is_relative_inferred: boolean;
     }[];
   };
+
+  // User manual overrides (Hard Anchors)
+  userOverrides?: {
+    people?: string[];
+    tags?: string[];
+    dates?: {
+      label: string;
+      iso_date: string;
+    }[];
+  };
 }

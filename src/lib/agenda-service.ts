@@ -61,5 +61,23 @@ export const agendaService = {
       status: 'archived',
       updatedAt: serverTimestamp(),
     });
+  },
+
+  // Update item raw text
+  async updateItemText(userId: string, itemId: string, rawText: string) {
+    const itemRef = doc(db, "users", userId, "items", itemId);
+    await updateDoc(itemRef, {
+      rawText,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  // Update user overrides
+  async updateOverrides(userId: string, itemId: string, overrides: AgendaItem['userOverrides']) {
+    const itemRef = doc(db, "users", userId, "items", itemId);
+    await updateDoc(itemRef, {
+      userOverrides: overrides,
+      updatedAt: serverTimestamp(),
+    });
   }
 };
