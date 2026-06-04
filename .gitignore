@@ -42,3 +42,6 @@ yarn-error.log*
 next-env.d.ts
 .next
 src/app/.page.tsx.swp
+
+#firebase
+.firebaserc
