@@ -52,14 +52,20 @@ const ExtractionSchema = genkit_1.z.object({
         is_relative_inferred: genkit_1.z.boolean(),
     })),
 });
-exports.extractAgendaItem = functions.https.onCall(async (request) => {
-    const { rawText, currentTimestamp } = request.data;
+exports.extractAgendaItem = functions.https.onRequest({
+    secrets: ["GOOGLE_GENAI_API_KEY"],
+    region: "us-central1",
+}, async (req, res) => {
+    console.log("Incoming request body:", JSON.stringify(req.body));
+    const { rawText, currentTimestamp } = req.body;
     if (!rawText) {
-        throw new functions.https.HttpsError("invalid-argument", "The function must be called with rawText.");
+        console.error("Missing rawText in request body");
+        res.status(400).json({ error: "The function must be called with rawText." });
+        return;
     }
     try {
+        console.log("Starting Genkit generation...");
         const response = await ai.generate({
-            // Using gemini-3-flash-preview as requested
             model: "googleai/gemini-3-flash-preview",
             prompt: `
         You are an expert PIM (Personal Information Manager) data extractor.
@@ -80,11 +86,17 @@ exports.extractAgendaItem = functions.https.onCall(async (request) => {
                 schema: ExtractionSchema,
             },
         });
-        return response.output;
+        console.log("Genkit raw response:", JSON.stringify(response));
+        console.log("Genkit generation successful");
+        res.json(response.output);
     }
     catch (error) {
-        console.error("Genkit Error:", error);
-        throw new functions.https.HttpsError("internal", "Failed to process AI extraction.");
+        console.error("Genkit Error Detailed:", {
+            message: error.message,
+            stack: error.stack,
+            cause: error.cause
+        });
+        res.status(500).json({ error: "Failed to process AI extraction.", details: error.message, });
     }
 });
 //# sourceMappingURL=index.js.map
