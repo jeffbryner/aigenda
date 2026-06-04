@@ -81,7 +81,7 @@ Project Agenda is a modern web reincarnation of the classic 1980s personal infor
 * `Ctrl + K` or `Cmd + K`: Opens global command palette to quickly switch views or execute actions.
 * `Arrow Keys / Tab`: Move system focus outline between matrix grid blocks and list entities.
 * `E`: Open inline modal text area to modify an active node.
-* `D` or `Spacebar`: Archive/Mark selected item as complete.
+* `D`: Archive/Mark selected item as complete.
 * `/`: Jump directly to the Global Command input bar.
 
 
