@@ -5,14 +5,17 @@ I used it extensively until DOS went the way of the GUI and loved the ability to
 
 Of course it is 2026 so this revision uses AI to process incoming items. 
 
-Front end is Next.js/react/tailwind.
-Back end is GCP: Cloud run/functions, firebase
+Architecture
+- Front end is Next.js/react/tailwind.
+- Back end is GCP: Cloud run/functions, firebase
+- Google Auth via GCP IAM
 
 ## Screenshot
 
 ![AIgendaScreenshot.png](AIgendaScreenshot.png)
 
-## Getting Started
+## Running
+Note this isn't meant to be a SaaS service, or something you deploy. It's just a pet project that works in my GCP environment. 
 ### Firebase
 TBD
 
