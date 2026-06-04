@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useKeyboard } from '@/hooks/use-keyboard';
 import { auth, functions } from '@/lib/firebase';
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  onAuthStateChanged, 
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged,
   User,
-  signOut 
+  signOut
 } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { agendaService } from '@/lib/agenda-service';
@@ -141,13 +141,6 @@ export default function Home() {
         setSelectedItemIdx(prev => (prev - 1 + colItems.length) % Math.max(1, colItems.length));
       }
     },
-    ' ': (e) => {
-      if (activeArea === 'grid' && !editingItemId) {
-        e.preventDefault();
-        const item = groupedCols[selectedCol].items[selectedItemIdx];
-        if (item && user) agendaService.archiveItem(user.uid, item.id);
-      }
-    },
     'd': (e) => {
       if (activeArea === 'grid' && !editingItemId) {
         const item = groupedCols[selectedCol].items[selectedItemIdx];
@@ -160,10 +153,28 @@ export default function Home() {
         if (item) setEditingItemId(item.id);
       }
     },
-    '1': () => { if (showPalette) { setViewMode('UNASSIGNED'); setShowPalette(false); } },
-    '2': () => { if (showPalette) { setViewMode('PROJECTS'); setShowPalette(false); } },
-    '3': () => { if (showPalette) { setViewMode('PEOPLE'); setShowPalette(false); } },
-    '4': () => { if (showPalette) { setViewMode('TIMELINE'); setShowPalette(false); } },
+    ' ': (e) => {
+      if (activeArea === 'grid' && !editingItemId) {
+        const item = groupedCols[selectedCol].items[selectedItemIdx];
+        if (item) setEditingItemId(item.id);
+      }
+    },
+    '1': () => {
+      setViewMode('UNASSIGNED');
+      setShowPalette(false);
+    },
+    '2': () => {
+      setViewMode('PROJECTS');
+      setShowPalette(false);
+    },
+    '3': () => {
+      setViewMode('PEOPLE');
+      setShowPalette(false);
+    },
+    '4': () => {
+      setViewMode('TIMELINE');
+      setShowPalette(false);
+    },
     'Tab': (e) => {
       e.preventDefault();
       if (activeArea === 'input') {
@@ -174,7 +185,7 @@ export default function Home() {
         inputRef.current?.focus();
       }
     }
-  });
+  }, [activeArea, editingItemId, groupedCols, selectedCol, selectedItemIdx, user, showPalette]);
 
   const handleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -188,7 +199,7 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || !user) return;
-    
+
     const raw = inputValue;
     const tempId = Math.random().toString(36).substr(2, 9);
     setInputValue('');
@@ -199,38 +210,66 @@ export default function Home() {
       status: 'active',
       createdAt: Date.now(),
     };
-    
+
     try {
       await agendaService.saveItem(user.uid, newItem);
-      const extractAgendaItem = httpsCallable(functions, 'extractAgendaItem');
-      const result = await extractAgendaItem({ 
-        rawText: raw,
-        currentTimestamp: new Date().toISOString()
+      processExtraction(raw, tempId);
+    } catch (error) {
+      console.error('Operation failed:', error);
+    }
+  };
+
+  const processExtraction = async (raw: string, itemId: string) => {
+    if (!user) return;
+    try {
+      const response = await fetch('/api/extractAgendaItem', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            rawText: raw,
+            currentTimestamp: new Date().toISOString()
+          }
+        })
       });
-      
-      const aiData = result.data as any;
-      await agendaService.updateAiResults(user.uid, tempId, {
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const aiData = await response.json();
+
+      await agendaService.updateAiResults(user.uid, itemId, {
         actionItems: aiData.action_items,
         people: aiData.people,
         tags: aiData.tags,
         dates: aiData.dates
       });
     } catch (error) {
-      console.error('Operation failed:', error);
+      console.error('Extraction failed:', error);
     }
   };
 
   const handleEditSubmit = async (itemId: string, newText: string) => {
     if (!user) return;
+    const oldItem = items.find(i => i.id === itemId);
+    if (oldItem?.rawText === newText) {
+      setEditingItemId(null);
+      return;
+    }
+
     await agendaService.updateItemText(user.uid, itemId, newText);
     setEditingItemId(null);
+    processExtraction(newText, itemId);
   };
 
   if (!user) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black text-white font-mono">
         <h1 className="text-2xl mb-8 tracking-tighter uppercase font-bold border-b-4 border-white pb-2">Project Agenda</h1>
-        <button 
+        <button
           onClick={handleLogin}
           className="px-8 py-3 bg-white text-black font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
         >
@@ -245,10 +284,10 @@ export default function Home() {
     <main className="flex-1 flex flex-col p-4 md:p-8 space-y-8 relative overflow-hidden">
       <div className="w-full max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-2">
-           <div className="text-[10px] uppercase tracking-widest text-zinc-600">
+          <div className="text-[10px] uppercase tracking-widest text-zinc-600">
             View: <span className="text-white">{viewMode}</span>
-           </div>
-           <button onClick={() => signOut(auth)} className="text-[10px] uppercase tracking-widest text-zinc-600 hover:text-white">Logout</button>
+          </div>
+          <button onClick={() => signOut(auth)} className="text-[10px] uppercase tracking-widest text-zinc-600 hover:text-white">Logout</button>
         </div>
         <form onSubmit={handleSubmit} className="relative group">
           <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none transition-colors ${activeArea === 'input' ? 'text-white' : 'text-zinc-500'}`}>
@@ -268,17 +307,15 @@ export default function Home() {
 
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
         {groupedCols.map((col, colIndex) => (
-          <div 
+          <div
             key={colIndex}
-            className={`border transition-colors p-4 flex flex-col ${
-              activeArea === 'grid' && selectedCol === colIndex 
-                ? 'border-zinc-700 ring-1 ring-zinc-700' 
-                : 'border-zinc-900'
-            }`}
+            className={`border transition-colors p-4 flex flex-col ${activeArea === 'grid' && selectedCol === colIndex
+              ? 'border-zinc-700 ring-1 ring-zinc-700'
+              : 'border-zinc-900'
+              }`}
           >
-            <h2 className={`text-sm font-bold uppercase tracking-widest mb-4 border-b pb-2 transition-colors ${
-              activeArea === 'grid' && selectedCol === colIndex ? 'text-white border-white' : 'text-zinc-600 border-zinc-900'
-            }`}>
+            <h2 className={`text-sm font-bold uppercase tracking-widest mb-4 border-b pb-2 transition-colors ${activeArea === 'grid' && selectedCol === colIndex ? 'text-white border-white' : 'text-zinc-600 border-zinc-900'
+              }`}>
               {col.title}
             </h2>
             <div className="flex-1 overflow-y-auto space-y-3">
@@ -287,11 +324,10 @@ export default function Home() {
                 const isEditing = editingItemId === item.id;
 
                 return (
-                  <div 
-                    key={item.id} 
-                    className={`p-3 text-sm transition-all ${
-                      isSelected ? 'bg-zinc-800 border-l-4 border-white' : 'bg-zinc-900/30 border-l-4 border-transparent'
-                    } ${isEditing ? 'ring-1 ring-white' : ''}`}
+                  <div
+                    key={item.id}
+                    className={`p-3 text-sm transition-all ${isSelected ? 'bg-zinc-800 border-l-4 border-white' : 'bg-zinc-900/30 border-l-4 border-transparent'
+                      } ${isEditing ? 'ring-1 ring-white' : ''}`}
                   >
                     {isEditing ? (
                       <input
@@ -307,7 +343,7 @@ export default function Home() {
                     ) : (
                       <p className={`mb-2 ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{item.rawText}</p>
                     )}
-                    
+
                     <div className="flex flex-wrap gap-2">
                       {item.aiParsed?.tags.map(tag => (
                         <span key={tag} className="tag-soft">#{tag}</span>
@@ -315,7 +351,7 @@ export default function Home() {
                       {item.userOverrides?.tags?.map(tag => (
                         <span key={tag} className="tag-hard-green">#{tag}</span>
                       ))}
-                      
+
                       {item.aiParsed?.people.map(person => (
                         <span key={person} className="tag-soft">@{person}</span>
                       ))}
@@ -327,18 +363,18 @@ export default function Home() {
                         <span key={date.label} className="tag-soft">{date.label}: {new Date(date.iso_date).toLocaleDateString()}</span>
                       ))}
                     </div>
-                    
+
                     {!item.aiParsed && (
                       <div className="mt-2 text-[10px] text-zinc-700 animate-pulse uppercase">Thinking...</div>
                     )}
                   </div>
                 );
               })}
-              
+
               {col.items.length === 0 && (
-                 <div className="flex items-center justify-center h-full text-zinc-900 text-[10px] uppercase tracking-tighter">
+                <div className="flex items-center justify-center h-full text-zinc-900 text-[10px] uppercase tracking-tighter">
                   - Empty -
-                 </div>
+                </div>
               )}
             </div>
           </div>
@@ -350,28 +386,28 @@ export default function Home() {
           <div className="w-full max-w-md bg-zinc-950 border border-white p-8 shadow-2xl">
             <h3 className="text-xs font-mono uppercase tracking-widest text-zinc-500 mb-8 border-b border-zinc-800 pb-2">Switch View</h3>
             <div className="space-y-4 font-mono">
-              <div 
+              <div
                 onClick={() => { setViewMode('UNASSIGNED'); setShowPalette(false); }}
                 className="flex justify-between items-center p-3 hover:bg-white hover:text-black cursor-pointer transition-colors group"
               >
                 <span>1. UNASSIGNED</span>
                 <span className="text-[10px] opacity-50">Default</span>
               </div>
-              <div 
+              <div
                 onClick={() => { setViewMode('PROJECTS'); setShowPalette(false); }}
                 className="flex justify-between items-center p-3 hover:bg-white hover:text-black cursor-pointer transition-colors group"
               >
                 <span>2. PROJECTS</span>
                 <span className="text-[10px] opacity-50">#TAGS</span>
               </div>
-              <div 
+              <div
                 onClick={() => { setViewMode('PEOPLE'); setShowPalette(false); }}
                 className="flex justify-between items-center p-3 hover:bg-white hover:text-black cursor-pointer transition-colors group"
               >
                 <span>3. PEOPLE</span>
                 <span className="text-[10px] opacity-50">@PEOPLE</span>
               </div>
-              <div 
+              <div
                 onClick={() => { setViewMode('TIMELINE'); setShowPalette(false); }}
                 className="flex justify-between items-center p-3 hover:bg-white hover:text-black cursor-pointer transition-colors group"
               >
